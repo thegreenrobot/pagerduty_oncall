@@ -1,10 +1,6 @@
-pagerduty_oncall
-================
-How to determine who is on-call using Ruby and the PagerDuty API
-
 Purpose
 =======
-Our team utilizes an IRC bot to execute a variety of functions but I found that it lacked a function to ask PagerDuty which engineer was on-call right now.  I set out to figure out a way to answer this question.
+Our team utilizes an IRC bot to execute a variety of functions but I found that it lacked a function to ask the PagerDuty API which engineer is on-call right now.  I set out to figure out a way to answer this question.
 
 Libraries
 =========
