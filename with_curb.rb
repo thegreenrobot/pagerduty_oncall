@@ -1,44 +1,92 @@
+#!/usr/bin/env ruby
+
 require 'curb'
 require 'json'
 require 'time'
- 
-# Get the userid of person from the rendered schedule 
-schedule_url = "https://yourdomain.pagerduty.com/api/v1/schedules/#{ARGV[1]}"
-schedule_params = { :since => Time.now.utc.iso8601(), 
-                    :until => (Time.now.utc + 60).iso8601() }
- 
-Curl::postalize(schedule_params)
- 
-final_url = Curl::urlalize(schedule_url, schedule_params)
- 
-http = Curl.get(final_url) do|http|
-  http.headers["Content-type"] = "application/json"
-  http.headers["Authorization"] = "Token token=#{ARGV[0]}"  # read/only api token
+
+# Get the ID of the escalation policy associated with the service
+url = "https://api.pagerduty.com/services/#{ARGV[1]}"
+
+http = Curl.get(url) do |curl|
+  curl.headers['Content-type'] = 'application/json'
+  curl.headers['Authorization'] = "Token token=#{ARGV[0]}" # read/only api token
+  curl.headers['Accept'] = 'application/vnd.pagerduty+json;version=2'
 end
- 
+
 if http.response_code == 200
-  schedule_result = JSON.parse(http.body_str)
-  user_id = schedule_result["schedule"]["schedule_layers"][0]["rendered_schedule_entries"][0]["user"]["id"]
-  user_name = schedule_result["schedule"]["schedule_layers"][0]["rendered_schedule_entries"][0]["user"]["name"]
+  result = JSON.parse(http.body_str)
+  escalation_policy_id = result['service']['escalation_policy']['id']
 else
-  puts "Oh snap! Something went wrong."
+  puts 'Oh snap! Something went wrong.'
 end
- 
-# Get the contact information of the userid  
-user_url = "https://yourdomain.pagerduty.com/api/v1/users/#{user_id}/contact_methods"
- 
-http = Curl.get(user_url) do|http|
-  http.headers["Content-type"] = "application/json"
-  http.headers["Authorization"] = "Token token=#{ARGV[0]}"  # read/only api token
+
+# Get the currently on-call user
+url = 'https://api.pagerduty.com/oncalls'
+params = { 'since' => Time.now.utc.iso8601,
+           'until' => (Time.now.utc + 60).iso8601,
+           'escalation_policy_ids[]' => escalation_policy_id }
+
+Curl.postalize(params)
+
+url = Curl.urlalize(url, params)
+
+http = Curl.get(url) do |curl|
+  curl.headers['Content-type'] = 'application/json'
+  curl.headers['Authorization'] = "Token token=#{ARGV[0]}" # read/only api token
+  curl.headers['Accept'] = 'application/vnd.pagerduty+json;version=2'
 end
- 
+
 if http.response_code == 200
-  user_result = JSON.parse(http.body_str)
-  user_email = user_result["contact_methods"][0]["email"]
-  user_phone = user_result["contact_methods"][1]["phone_number"]
+  result = JSON.parse(http.body_str)
+  user_id = result['oncalls'][0]['user']['id']
+  user_name = result['oncalls'][0]['user']['summary']
 else
-  puts "Oh snap! Something went wrong."
+  puts 'Oh snap! Something went wrong.'
 end
- 
+
+# Get the contact information of the userid
+url = "https://api.pagerduty.com/users/#{user_id}/contact_methods"
+
+http = Curl.get(url) do |curl|
+  curl.headers['Content-type'] = 'application/json'
+  curl.headers['Authorization'] = "Token token=#{ARGV[0]}" # read/only api token
+  curl.headers['Accept'] = 'application/vnd.pagerduty+json;version=2'
+end
+
+if http.response_code == 200
+  result = JSON.parse(http.body_str)
+  user_emails = []
+  user_phones = []
+  result['contact_methods'].each do |method|
+    if method['type'] == 'email_contact_method'
+      user_emails.push(method['address'])
+    elsif method['type'] == 'phone_contact_method'
+      user_phones.push(method['address'])
+    end
+  end
+else
+  puts 'Oh snap! Something went wrong.'
+end
+
 # Print out the On-Call User information
-puts "On-Call Engineer: #{user_name} - #{user_email} - #{user_phone}"
+output = "On-Call Engineer: #{user_name}. Email(s): "
+if user_emails.any?
+  user_emails.each do |email|
+    output << email
+    output << ', '
+  end
+  output = output.chomp(', ')
+else
+  output << 'N/A'
+end
+output << '. Phone Number(s): '
+if user_phones.any?
+  user_phones.each do |num|
+    output << num
+    output << ', '
+  end
+  output = output.chomp(', ')
+else
+  output << 'N/A.'
+end
+puts output

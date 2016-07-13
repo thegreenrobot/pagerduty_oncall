@@ -11,15 +11,14 @@ I'm no Ruby expert so when I asked three different developers for their library 
 
 Usage
 =====
-* Change the URL subdomain for your account
-* First argument: Your API key (I recommend generating a read-only API key)
-* Second argument: The ID of the appropriate service id.
+* First argument: Your v2 REST API key (I recommend generating a read-only API key)
+* Second argument: The ID of the appropriate service
 
 Sample Output
 =============
-On-Call Engineer: John Smith - john.smith@yourcompany.com - 1112223333
+On-Call Engineer: John Smith. Email(s): john.smith@yourcompany.com, john.smith@gmail.com. Phone Number(s): 1112223333.
 
 More Information
 ================
-* PagerDuty API documentation => http://developer.pagerduty.com/documentation/rest
+* PagerDuty API documentation => https://developer.pagerduty.com/
 * http://support.pagerduty.com/entries/23586358-Determine-Who-Is-On-Call
