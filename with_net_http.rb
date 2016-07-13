@@ -97,6 +97,6 @@ if user_phones.any?
   end
   output = output.chomp(', ')
 else
-  output << 'N/A'
+  output << 'N/A.'
 end
 puts output
